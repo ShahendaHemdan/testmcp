@@ -1,29 +1,45 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ContactRequest;
-use App\Mail\ContactFormSubmitted;
-use App\Models\Contact;
+use App\Mail\ContactFormSubmission;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class ContactController extends Controller
 {
-    public function store(ContactRequest $request): RedirectResponse
+    /**
+     * Display the contact form page
+     *
+     * @return \Illuminate\View\View
+     */
+    public function index()
     {
-        $validatedData = $request->validated();
+        return view('contact');
+    }
 
-        Contact::create($validatedData);
-
-        // Ensure MAIL_FROM_ADDRESS is set in .env or config/mail.php
-        $recipient = config('mail.from.address');
-        if ($recipient) {
-            Mail::to($recipient)->send(new ContactFormSubmitted($validatedData));
+    /**
+     * Store a new contact form submission
+     *
+     * @param \App\Http\Requests\ContactRequest $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function store(ContactRequest $request)
+    {
+        $validated = $request->validated();
+        
+        // Send email notification
+        try {
+            Mail::to(config('mail.from.address'))
+                ->send(new ContactFormSubmission($validated));
+        } catch (\Exception $e) {
+            // Log the error but don't show it to the user
+            logger()->error('Failed to send contact email: ' . $e->getMessage());
         }
-
-        return back()->with('success', 'Your message has been sent successfully!');
+        
+        return redirect()
+            ->route('contact.index')
+            ->with('success', 'Thank you for your message! We will get back to you soon.');
     }
 } 

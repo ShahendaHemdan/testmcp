@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
@@ -10,27 +8,22 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Mail\Mailables\Address;
 
-class ContactFormSubmitted extends Mailable
+class ContactFormSubmission extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
     /**
-     * The form data.
-     *
-     * @var array<string, mixed>
-     */
-    public array $formData;
-
-    /**
      * Create a new message instance.
-     *
-     * @param array<string, mixed> $formData
      */
-    public function __construct(array $formData)
-    {
-        $this->formData = $formData;
-    }
+    public function __construct(
+        public readonly string $name,
+        public readonly string $email,
+        public readonly ?string $phone,
+        public readonly string $subject,
+        public readonly string $message
+    ) {}
 
     /**
      * Get the message envelope.
@@ -38,9 +31,11 @@ class ContactFormSubmitted extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: $this->formData['email'], // Set the "from" address to the submitter's email
-            replyTo: $this->formData['email'], // Set reply-to for convenience
-            subject: 'New Contact Form Submission',
+            subject: 'New Contact Form Submission: ' . $this->subject,
+            from: new Address(config('mail.from.address'), config('mail.from.name')),
+            replyTo: [
+                new Address($this->email, $this->name),
+            ],
         );
     }
 
@@ -50,11 +45,13 @@ class ContactFormSubmitted extends Mailable
     public function content(): Content
     {
         return new Content(
-            markdown: 'emails.contact.submitted',
+            view: 'emails.contact-form-submission',
             with: [
-                'name' => $this->formData['name'],
-                'email' => $this->formData['email'],
-                'messageContent' => $this->formData['message'], // Use a different variable name
+                'name' => $this->name,
+                'email' => $this->email,
+                'phone' => $this->phone,
+                'subject' => $this->subject,
+                'messageContent' => $this->message,
             ],
         );
     }

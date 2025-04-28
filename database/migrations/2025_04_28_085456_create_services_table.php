@@ -13,6 +13,10 @@ return new class extends Migration
     {
         Schema::create('services', function (Blueprint $table) {
             $table->id();
+            $table->string('title');
+            $table->text('description');
+            $table->string('icon_class')->nullable(); // For icon font classes e.g., Font Awesome
+            $table->integer('sort_order')->default(0); // To control display order
             $table->timestamps();
         });
     }
@@ -24,4 +28,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('services');
     }
-};
+}; 
